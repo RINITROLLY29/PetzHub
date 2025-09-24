@@ -544,9 +544,7 @@ def delete_profile(user):
 
       if confirm!="yes":
          print("Deletion Cancelled.")
-         return
-       
-         
+         return  
       cursor.execute("DELETE FROM Appointments WHERE User_Id=?",(user["Id"],))
       cursor.execute("DELETE FROM Notifications WHERE User_Id=?",(user["Id"],))
       cursor.execute("DELETE FROM Appointments WHERE User_Id=?",(user["Id"],))
@@ -618,6 +616,7 @@ def dashboard(user):
 
       #petowner menu
       if role=="petowner":
+        print("PetOwner Dashboard")
         print("1. Book Appointment ")
         print("2. View Appointments ")
         print("3. Manage Appointments")
@@ -664,6 +663,7 @@ def dashboard(user):
 
       #vet menu
       elif role=="vet":
+         print("Vet Dashboard")
          print("1. View Appointments ")
          print("2. Notification ")
          print("3. Manage Appointment ")
@@ -700,6 +700,7 @@ def dashboard(user):
 
       #serviceprovider menu   
       elif role=="serviceprovider":
+         print("Service Provider Dashboard")
          print("1. Community ")
          print("2. Update Profile ")
          print("3. Delete Profile ")
