@@ -726,7 +726,7 @@ def dashboard(user):
 #main
 def main():
    while True:
-      print("\n PetHub  ")
+      print("\n==========PetHub========== ")
       print("1. Register ")
       print("2. Login ")
       print("3. Admin Login ")
