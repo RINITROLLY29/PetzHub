@@ -18,7 +18,8 @@ cursor.execute("""
                Password TEXT,
                Role TEXT,
                Pet_Name TEXT,
-               Pet_Type TEXT
+               Pet_Type TEXT,
+               Status TEXT DEFAULT 'Pending'
                )
                """)
 
@@ -27,7 +28,8 @@ cursor.execute("""
                Id INTEGER PRIMARY KEY AUTOINCREMENT,
                Name TEXT,
                Speciality TEXT,
-               Visiting_Time TEXT
+               Visiting_Time TEXT,
+               Certificate TEXT
                )
                """)
 
@@ -37,7 +39,9 @@ cursor.execute("""
                Name TEXT,
                Service_Type TEXT,
                Contact_Info INTEGER,
-               Location TEXT)
+               Location TEXT,
+               Certificate TEXT
+               )
                """)
 
 cursor.execute("""
@@ -103,17 +107,18 @@ def register_user():
         cursor.execute("INSERT INTO Users(Name,Email,Password,Role,Pet_Name,Pet_Type) VALUES (?,?,?,?,?,?)",
                        (name,email,password,role,pet_name,pet_type))
         conn.commit()
-        print("Registration Successful!")
+        print("Account Created")
 
         if role.lower() == "vet":
           speciality=input("Enter Your Specialized Area: ")
           slots=input("Enter Visiting Time (eg:- 9am-12pm,2pm-5pm): ")
           slots=slots.replace(" ","").replace(".","")
-          cursor.execute("INSERT INTO Vets(Name,Speciality,Visiting_Time) VALUES (?,?,?)",
-                       (name,speciality,slots))
+          certificate=input("Enter your Vet License/Certificate Number: ").strip()
+          cursor.execute("INSERT INTO Vets(Name,Speciality,Visiting_Time,Certificate) VALUES (?,?,?,?)",
+                       (name,speciality,slots,certificate))
         
           conn.commit()
-          print("Profile Created Successfully!")
+          print("Profile Created Successfully!Awaiting Admin Approval.")
 
         elif role.lower() == "serviceprovider":
           service_type=input("Enter Service Type: ").capitalize()
@@ -124,11 +129,12 @@ def register_user():
              else:
                 print("Please enter a valid 10-digit number")
           location=input("Enter Your Location: ").capitalize()
-          cursor.execute("INSERT INTO ServiceProviders(Name,Service_Type,Contact_Info,Location) VALUES (?,?,?,?)",
-                       (name,service_type,contact_info,location))
+          certificate=input("Enter your Business License/Certificate Number: ").strip()
+          cursor.execute("INSERT INTO ServiceProviders(Name,Service_Type,Contact_Info,Location,Certificate) VALUES (?,?,?,?,?)",
+                       (name,service_type,contact_info,location,certificate))
         
           conn.commit()
-          print("Service Provider profile created!")
+          print("Service Provider profile created!Awaiting Admin Approval.")
     
 
     except sqlite3.IntegrityError:
@@ -145,6 +151,9 @@ def user_login():
    user=cursor.fetchone()
 
    if user:
+      if user['Status']!="Approved":
+         print(f"Your account is currently '{user['Status']}'. Please wait for Admin's approval.")
+         return None
       print(f" Welcome {user['Name']}!")
       print("Logged in Successfuly.")
       return user
@@ -551,7 +560,52 @@ def delete_profile(user):
       conn.commit()
       print("Your Account has been deleted.GoodBye")
       exit()
+
+def admin_panel():
+   while True:
+      print("\n---Admin Panel---")
+      print("1. View Pending Users")
+      print("2. Approve User")
+      print("3. Reject User")
+      print("4. Back")
+      choice=input("Enter choice: ").strip() 
+      if choice=="1":
+         cursor.execute("SELECT Id,Name,Email,Role,Status FROM Users WHERE Status='Pending'")
+         pending=cursor.fetchall()
+         if pending:
+            for u in pending:
+               print(dict(u))
+
+               if u['Role'].lower()=="vet":
+                  cursor.execute("SELECT Certificate FROM Vets WHERE Name=?",(u['Name'],))
+                  vet_cert=cursor.fetchone()
+                  print(f"Vet Certificate: {vet_cert['Certificate'] if vet_cert else 'N/A'}")
+               elif u['Role'].lower()=="serviceprovider":
+                  cursor.execute("SELECT Certificate FROM ServiceProviders WHERE Name=?",(u['Name'],))
+                  sp_cert=cursor.fetchone()
+                  print(f"Service Provider Certificate: {sp_cert['Certificate'] if sp_cert else 'N/A'}")
+         else:
+            print("No Pending Users.")
       
+      elif choice=="2":
+         uid=input("Enter User Id to Approve: ").strip()
+         cursor.execute("UPDATE Users SET Status='Approved' WHERE Id=?",(uid,))
+         conn.commit()
+         print("User Approved")
+
+      elif choice=="3":
+         uid=input("Enter User Id to Reject: ").strip()
+         cursor.execute("UPDATE Users SET Status='Rejected' WHERE Id=?",(uid,))
+         conn.commit()
+         print("User Rejected")
+
+      elif choice=="4":
+         break
+
+      else:
+         print("Invalid Choice! Select a valid Option.")
+         
+   
 
 #Dashboard
 def dashboard(user):
@@ -674,7 +728,8 @@ def main():
       print("\n PetHub  ")
       print("1. Register ")
       print("2. Login ")
-      print("3. Exit " )
+      print("3. Admin Login ")
+      print("4. Exit " )
       choice=input("Enter your Choice: ")
 
       if choice=="1":
@@ -684,6 +739,8 @@ def main():
          if user:
             dashboard(user)
       elif choice=="3":
+         admin_panel()
+      elif choice=="4":
          print("Exiting PetHub......")
          break
       else:
